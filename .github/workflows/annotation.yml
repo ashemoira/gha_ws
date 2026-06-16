@@ -1,6 +1,6 @@
 name: Annotation
 on: push
-jobs:
+jobs: # jobsキーへ複数のジョブを定義すると並列に実行される
   log:
     runs-on: ubuntu-latest
     steps:
