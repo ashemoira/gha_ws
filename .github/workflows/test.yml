@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5 # step1: checkout, バージョンは最新のものを指定
-      - uses: actions/setup-go@v5 # step2: golang setup
+      - uses: actions/setup-go@v6 # step2: golang setup
         with:
           go-version: '1.22'
       - run: go test go/excellent/*.go  # step3: run test
