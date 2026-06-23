@@ -6,24 +6,27 @@ on:
 
 jobs:
   close-issue:
-    # PRがマージされた場合のみ実行（クローズされただけの場合はスキップ）
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     
-    # Issueを書き換えるための権限を設定
     permissions:
       issues: write
+      # actions/checkout が内部でコードを読み取るために必要（読み取り専用）
+      contents: read
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Extract Issue ID from branch name
         id: get_issue
+        env:
+          RAW_BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
         run: |
-          # マージされたPRのソースブランチ名を取得 (例: issue/#123)
-          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
-          echo "Merged branch: $BRANCH_NAME"
+          echo "Merged branch: $RAW_BRANCH_NAME"
           
-          # 正規表現で「issue/#数字」の数字部分を抽出
-          if [[ $BRANCH_NAME =~ issue/([0-9]+) ]]; then
+          # 「issue/#数字」または「issue/数字」の両方に対応できるように正規表現を少し柔軟にしています
+          if [[ $RAW_BRANCH_NAME =~ issue/([0-9]+) || $RAW_BRANCH_NAME =~ issue/\#([0-9]+) ]]; then
             ISSUE_ID="${BASH_REMATCH[1]}"
             echo "issue_id=$ISSUE_ID" >> $GITHUB_OUTPUT
             echo "Found Issue ID: $ISSUE_ID"
@@ -32,7 +35,6 @@ jobs:
           fi
 
       - name: Close Issue
-        # 前のステップでIssue IDが見つかった場合のみ実行
         if: steps.get_issue.outputs.issue_id != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
