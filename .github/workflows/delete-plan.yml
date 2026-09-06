@@ -54,6 +54,3 @@ jobs:
             --title "chore: remove .plan files" \
             --body "Scheduled cleanup of .plan directories." \
             --base main
-
-          # CI check が通ったら自動 merge（squash）
-          gh pr merge --squash --auto
