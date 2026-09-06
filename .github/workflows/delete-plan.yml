@@ -1,15 +1,12 @@
 name: Delete .plan files
 on:
+  # main への merge（push）が行われたタイミングで発火する
   push:
-    # まず YK- で始まるブランチに絞り込む（数値以外の分岐はジョブ内で除外する）
     branches:
-      - 'YK-*'
+      - main
 
 jobs:
   delete-plan:
-    # branches 指定は fnmatch 形式なので YK-abc など数値以外も拾ってしまう。
-    # ここでは正規表現で「YK-」に数値のみが続くブランチだけを扱うように絞る。
-    if: ${{ github.ref_name =~ /^YK-[0-9]+$/ }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -38,5 +35,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "chore: remove .plan files (YK-merge)"
+          git commit -m "chore: remove .plan files (merged to main)"
           git push
