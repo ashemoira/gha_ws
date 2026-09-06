@@ -1,0 +1,56 @@
+# name: Delete .plan files (PR)
+# on:
+#   push:
+#     # まず YK- で始まるブランチに絞り込む（数値以外の分岐はジョブ内で除外する）
+#     branches:
+#       - 'YK-*'
+
+# jobs:
+#   delete-plan-pr:
+#     # branches 指定は fnmatch 形式なので YK-abc など数値以外も拾ってしまう。
+#     # ここでは正規表現で「YK-」に数値のみが続くブランチだけを扱うように絞る。
+#     if: ${{ github.ref_name =~ /^YK-[0-9]+$/ }}
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: write
+#       pull-requests: write
+#     env:
+#       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # github cliの認証に利用
+#     steps:
+#       - uses: actions/checkout@v7
+
+#       # 削除対象のブランチを切り、PR を作成する
+#       - name: Create deletion branch and open PR
+#         run: |
+#           # .plan が存在しない場合は何もしない
+#           if ! find . -path ./.git -prune -o -type d -name '.plan' -print | grep -q .; then
+#             echo ".plan フォルダが存在しないため何もしません。"
+#             exit 0
+#           fi
+
+#           git config user.name  "github-actions[bot]"
+#           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+#           # 実行IDを併用することでブランチ名を一意にする
+#           branch="chore/delete-plan/${{ github.run_id }}"
+#           git checkout -b "$branch"
+
+#           # プロジェクト内のすべての .plan を削除（.git 配下は除外）
+#           find . -path ./.git -prune -o -type d -name '.plan' -exec rm -rf {} +
+#           git add -A
+
+#           # 差分が無ければ何もしない
+#           if git diff --cached --quiet; then
+#             echo "変更内容がありません。"
+#             exit 0
+#           fi
+
+#           git commit -m "chore: remove .plan files (YK-merge)"
+#           git push origin "$branch"
+
+#           # YK-xxx へ向けて PR を作成（既存の PR があれば作成できないためエラーにして報告する）
+#           gh pr create \
+#             --base "${GITHUB_REF_NAME}" \
+#             --head "$branch" \
+#             --title "chore: remove .plan files" \
+#             --body "この PR は GitHub Actions(delete-plan-pr) が自動で作成した PR です。プロジェクト内の \`.plan/\` を削除します。"
