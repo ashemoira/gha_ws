@@ -21,6 +21,8 @@ jobs:
       - name: Delete .plan files and create PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PR 作成後にメンションするユーザー名（@ 付きで指定）
+          MENTION_USER: "@ashemoira"
         run: |
           set -e
 
@@ -50,7 +52,14 @@ jobs:
           git push origin "$BRANCH"
 
           # PR を作成
-          gh pr create \
+          PR_NUMBER=$(gh pr create \
             --title "chore: remove .plan files" \
             --body "Scheduled cleanup of .plan directories." \
-            --base main
+            --base main | grep -oP '\d+$')
+
+          # PR 作成後にメンションするコメントを追加
+          {
+            echo "📋 .plan の定期クリーンアップ PR を作成しました。"
+            echo ""
+            echo "${MENTION_USER} ご確認のほどよろしくお願いいたします 🙏"
+          } | gh pr comment "$PR_NUMBER" --body-stdin
