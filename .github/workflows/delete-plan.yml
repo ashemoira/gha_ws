@@ -1,21 +1,29 @@
 name: Delete .plan files
 on:
-  # main への merge（push）が行われたタイミングで発火する
-  push:
-    branches:
-      - main
+  # 毎月 1 日・15 日の 0 時 UTC（≈ 2 週間周期）に実行
+  schedule:
+    - cron: "0 0 1,15 * *"
+  # 手動実行用のトリガー
+  workflow_dispatch:
 
 jobs:
   delete-plan:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: main
 
-      # プロジェクト内の .plan をすべて削除し、削除コミットをブランチに反映する
-      - name: Delete .plan files and commit
+      # .plan を削除し、PR を作成して main に反映する
+      - name: Delete .plan files and create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -e
+
           # .plan が存在しない場合は何もしない
           if ! find . -path ./.git -prune -o -type d -name '.plan' -print | grep -q .; then
             echo ".plan フォルダが存在しないため何もしません。"
@@ -35,5 +43,17 @@ jobs:
             exit 0
           fi
 
-          git commit -m "chore: remove .plan files (merged to main)"
-          git push
+          # 作業ブランチを作成して push
+          BRANCH="chore/remove-plan-$(date +%Y%m%d)"
+          git checkout -b "$BRANCH"
+          git commit -m "chore: remove .plan files"
+          git push origin "$BRANCH"
+
+          # PR を作成
+          gh pr create \
+            --title "chore: remove .plan files" \
+            --body "Scheduled cleanup of .plan directories." \
+            --base main
+
+          # CI check が通ったら自動 merge（squash）
+          gh pr merge --squash --auto
