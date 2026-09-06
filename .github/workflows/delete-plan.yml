@@ -1,0 +1,39 @@
+name: Delete .plan files
+on:
+  # main への merge（push）が行われたタイミングで発火する
+  push:
+    branches:
+      - main
+
+jobs:
+  delete-plan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      # プロジェクト内の .plan をすべて削除し、削除コミットをブランチに反映する
+      - name: Delete .plan files and commit
+        run: |
+          # .plan が存在しない場合は何もしない
+          if ! find . -path ./.git -prune -o -type d -name '.plan' -print | grep -q .; then
+            echo ".plan フォルダが存在しないため何もしません。"
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # プロジェクト内のすべての .plan を削除（.git 配下は除外）
+          find . -path ./.git -prune -o -type d -name '.plan' -exec rm -rf {} +
+          git add -A
+
+          # 差分が無ければコミットしない
+          if git diff --cached --quiet; then
+            echo "変更内容がありません。"
+            exit 0
+          fi
+
+          git commit -m "chore: remove .plan files (merged to main)"
+          git push
